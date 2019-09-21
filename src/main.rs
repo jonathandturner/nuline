@@ -180,7 +180,8 @@ fn read_char() -> io::Result<u8> {
 fn read_position() -> io::Result<(u16, u16)> {
     let mut buffer = vec![];
 
-    println!("\x1b[6n");
+    print!("\x1b[6n");
+    let _ = std::io::stdout().flush();
     let mut input = read_char()?;
 
     while input != 82 {
@@ -205,21 +206,40 @@ fn read_position() -> io::Result<(u16, u16)> {
 }
 
 fn goto_position(row: u16, column: u16) -> io::Result<()> {
-    println!("\x1b[{};{}f", row, column);
+    print!("\x1b[{};{}f", row, column);
+    let _ = std::io::stdout().flush();
     Ok(())
 }
 
-fn term_loop() {
+fn paint_string(s: &str, row: u16, col: u16) -> io::Result<()> {
+    goto_position(row, col)?;
+
+    print!("{}", s);
+    let _ = std::io::stdout().flush();
+    Ok(())
+}
+
+fn term_loop() -> io::Result<()> {
     let mut term = Terminal::new();
     let _ = term.enable_raw_mode();
 
     print!("> ");
     let _ = std::io::stdout().flush();
+    let reset_position = read_position()?;
     let mut buffer = String::new();
     loop {
         if let Ok(c) = read_char() {
-            if c == 13 {
+            if c == 1 {
+                // CTRL-A
+                let _ = goto_position(reset_position.0, reset_position.1);
+            } else if c == 3 {
+                // CTRL-C
+                break;
+            } else if c == 13 {
                 // Carriage return
+                print!("\r\n");
+                let _ = std::io::stdout().flush();
+
                 if buffer == "quit" {
                     break;
                 } else if buffer == "jump" {
@@ -232,18 +252,24 @@ fn term_loop() {
                 buffer.clear();
                 print!("> ");
                 let _ = std::io::stdout().flush();
+            } else if c == 127 {
+                buffer.pop();
+                paint_string(&buffer, reset_position.0, reset_position.1)?;
             } else {
-                print!("{}", c as char);
-                let _ = std::io::stdout().flush();
                 buffer.push(c as char);
+                //paint_string(&buffer, reset_position.0, reset_position.1)?;
             }
+            print!("{}", c);
+            let _ = std::io::stdout().flush();
         }
     }
 
     let _ = term.disable_raw_mode();
+
+    Ok(())
 }
 
 fn main() {
     //futures::executor::block_on(term_loop());
-    term_loop();
+    let _ = term_loop();
 }
