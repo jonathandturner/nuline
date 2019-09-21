@@ -1,12 +1,3 @@
-// #![feature(generators)]
-// #![feature(proc_macro_hygiene)]
-// use futures::stream::BoxStream;
-// use futures::stream::StreamExt;
-// use futures::{FutureExt, Stream};
-// use futures_async_stream::async_stream_block;
-// //use async_std::{io, net::TcpStream, prelude::*, task};
-// use std::mem;
-
 use libc::{c_int, termios as Termios};
 use std::io;
 use std::io::{Read, Write};
@@ -89,85 +80,6 @@ pub enum KeyEvent {
     Line(String),
     Exit,
 }
-
-// pub struct OutputStream {
-//     pub(crate) values: BoxStream<'static, KeyEvent>,
-// }
-
-// pub trait ToOutputStream {
-//     fn to_output_stream(self) -> OutputStream;
-// }
-
-// impl<T, U> ToOutputStream for T
-// where
-//     T: Stream<Item = U> + Send + 'static,
-//     U: Into<KeyEvent>,
-// {
-//     fn to_output_stream(self) -> OutputStream {
-//         OutputStream {
-//             values: self.map(|item| item.into()).boxed(),
-//         }
-//     }
-// }
-
-// fn build_event_stream() -> OutputStream {
-//     let stream = async_stream_block! {
-//         loop {
-//             println!("Input >");
-//             let mut buffer = String::new();
-//             let stdin = io::stdin();
-//             let input = stdin.read_line(&mut buffer).await;
-
-//             println!("Done reading");
-
-//             if input.is_ok() {
-//                 if buffer.trim() == "exit" {
-//                     yield KeyEvent::Exit;
-//                 } else {
-//                     yield KeyEvent::Line(buffer.clone());
-//                 }
-//             } else {
-//                 break;
-//             }
-//         }
-//     };
-
-//     stream.to_output_stream()
-// }
-
-// impl From<BoxStream<'static, KeyEvent>> for OutputStream {
-//     fn from(input: BoxStream<'static, KeyEvent>) -> OutputStream {
-//         OutputStream { values: input }
-//     }
-// }
-
-// impl Stream for OutputStream {
-//     type Item = KeyEvent;
-
-//     fn poll_next(
-//         mut self: std::pin::Pin<&mut Self>,
-//         cx: &mut std::task::Context<'_>,
-//     ) -> core::task::Poll<Option<Self::Item>> {
-//         Stream::poll_next(std::pin::Pin::new(&mut self.values), cx)
-//     }
-// }
-
-// async fn term_loop() {
-//     let mut term = Terminal::new();
-
-//     let _ = term.enable_raw_mode();
-
-//     loop {
-//         let mut events = build_event_stream();
-
-//         let events = events.collect::<Vec<_>>().await;
-//         for event in events  {
-//             println!("{:?}", event);
-//         }
-//     }
-
-//     let _ = term.disable_raw_mode();
-// }
 
 fn read_char() -> io::Result<u8> {
     let mut buffer = vec![0; 1];
@@ -257,10 +169,8 @@ fn term_loop() -> io::Result<()> {
                 paint_string(&buffer, reset_position.0, reset_position.1)?;
             } else {
                 buffer.push(c as char);
-                //paint_string(&buffer, reset_position.0, reset_position.1)?;
+                paint_string(&buffer, reset_position.0, reset_position.1)?;
             }
-            print!("{}", c);
-            let _ = std::io::stdout().flush();
         }
     }
 
@@ -270,6 +180,5 @@ fn term_loop() -> io::Result<()> {
 }
 
 fn main() {
-    //futures::executor::block_on(term_loop());
     let _ = term_loop();
 }
